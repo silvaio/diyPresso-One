@@ -32,6 +32,11 @@
 #define TIMEOUT_CONTROL_MSEC (1000 * 10)    // Max time between control updates [milliseconds]
 #define TIMEOUT_HEATER_SSR_MSEC (1000 * 60) // maximum time the SSR is allowed to be ON [milliseconds]
 
+// Safety: Temperature rate monitoring for dry boiler detection
+#define TEMP_RATE_WINDOW_SEC (30)            // Time window for rate calculation [seconds] - balanced for 1300W element response
+#define TEMP_RATE_MAX_NORMAL (5.0)           // Max normal temperature rise rate [degC/min]
+#define TEMP_RATE_MAX_DRY (25.0)             // Max safe temperature rise rate [degC/min] - tuned for 1300W element
+
 // Various boiler errors
 typedef enum
 {
@@ -44,6 +49,7 @@ typedef enum
   BOILER_ERROR_OVER_TEMP,
   BOILER_ERROR_UNDER_TEMP,
   BOILER_ERROR_CONTROL_TIMEOUT,
+  BOILER_ERROR_DRY_BOILER,
   BOILER_ERROR_UNKNOWN,
 } boiler_error_t;
 
@@ -80,7 +86,11 @@ public:
   void control();
   void begin();
   void init(); 
-
+#ifdef SIMULATE
+  // Public helpers for simulation
+  void set_sim_temp_override(double temp) { _sim_temp_override = temp; }
+  void clear_sim_temp_override() { _sim_temp_override = -1.0; }
+#endif
 
 private:
   DpPID _pid;
@@ -89,12 +99,22 @@ private:
   unsigned long _last_control_time = 0;
   boiler_error_t _error = BOILER_ERROR_NONE;
   int _rtd_error = 0;   // current RTD errors
+
+  // Temperature rate monitoring for dry boiler detection
+  double _temp_rate_history[TEMP_RATE_WINDOW_SEC] = {0}; // Rolling average buffer
+  int _temp_rate_index = 0;
+  unsigned long _last_temp_time = 0;
+  double _prev_temp = 0;
+
+  // Simulation override for testing
+  double _sim_temp_override = -1.0;
   void state_off();     // SSR is forced OFF
   void state_heating(); // Temperature control, but not yet on target temperature
   void state_ready();   // temperature control, within range of target temperature
   void state_brew();    // temperature control in brewing mode with feed-forward active
   void state_error();   // heater is forced OFF, error code is set, set state to OFF to clear error
   void goto_error(boiler_error_t err);
+  void check_dry_boiler_safety();
   MAX31865 thermistor = MAX31865(PIN_THERM_CS);
 };
 

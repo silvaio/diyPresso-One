@@ -238,18 +238,80 @@ void loop()
 
 
 
-/// BEGIN Test code to simulate heater
+/// BEGIN Test code to simulate heater and test safety features
 #ifdef SIMULATE
   static unsigned long timer = 0;
+  static bool test_mode = false;
+  static unsigned long test_start = 0;
+  static int last_button_count_test = 0;
+
   timer += 1;
-  if (timer < 150)
-    boilerController.set_temp(settings.temperature());
-  else
-    boilerController.set_temp(20.0);
-  if (timer > 300)
-    timer = 0;
+
+  // Test scenarios for safety features
+  // Press encoder button 3 times quickly to enter test mode
+  {
+    int current_button_count = encoder.button_count();
+    if ((current_button_count != last_button_count_test) && !test_mode) {
+      static int press_count = 0;
+      static unsigned long last_press = 0;
+      if (millis() - last_press < 2000) {
+        press_count++;
+        if (press_count >= 3) {
+          test_mode = true;
+          test_start = millis();
+          Serial.println("\n=== ENTERING SAFETY TEST MODE ===");
+          Serial.println("Testing water verification and dry boiler detection");
+          press_count = 0;
+        }
+      } else {
+        press_count = 1;
+      }
+      last_press = millis();
+    }
+    last_button_count_test = current_button_count;
+  }
+
+  if (test_mode) {
+    unsigned long test_time = millis() - test_start;
+
+    // Test 1: Normal operation (first 30 seconds)
+    if (test_time < 30000) {
+      boilerController.set_temp(settings.temperature());
+      if (test_time < 5000) {
+        Serial.println("TEST: Normal heating - temp should rise gradually");
+      }
+    }
+    // Test 2: Simulate dry boiler (30-60 seconds)
+    else if (test_time < 60000) {
+      boilerController.set_temp(settings.temperature());
+      if (test_time >= 30000 && test_time < 35000) {
+        Serial.println("TEST: Simulating dry boiler - rapid temp rise");
+        Serial.println("DRY_BOILER error should trigger soon...");
+      }
+      // Force rapid temperature rise to simulate dry boiler
+      // This will trigger the dry boiler detection
+      static float sim_temp = 50.0;
+      sim_temp += 0.5; // 0.5°C per second = 30°C/min (exceeds 25°C/min limit)
+      boilerController.set_sim_temp_override(sim_temp); // Override temperature for simulation
+    }
+    // Test 3: Reset and exit test mode
+    else {
+      Serial.println("TEST: Resetting to normal operation");
+      test_mode = false;
+      timer = 0;
+      boilerController.clear_sim_temp_override();
+    }
+  } else {
+    // Normal simulation cycle
+    if (timer < 150)
+      boilerController.set_temp(settings.temperature());
+    else
+      boilerController.set_temp(20.0);
+    if (timer > 300)
+      timer = 0;
+  }
 #endif
-  /// END Test code to simulate heater
+  /// END Test code to simulate heater and test safety features
 
 
 

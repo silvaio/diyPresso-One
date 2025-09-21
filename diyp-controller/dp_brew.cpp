@@ -52,7 +52,7 @@ void BrewProcess::state_init()
 }
 
 // Fill the boiler
-// We enable the pump, pump for (INITIAL_PUMP_TIME) 30 seconds and check if a minumum amount of water has been pumped from the reservoir
+// We enable the pump, pump for (INITIAL_PUMP_TIME) 30 seconds and check if a minimum amount of water has been pumped from the reservoir (~125ml)
 // Error if not, purge if it has
 void BrewProcess::state_fill()
 {
@@ -65,10 +65,10 @@ void BrewProcess::state_fill()
   statusLed.color(blink() ? ColorLed::YELLOW : ColorLed::BLACK);
   ON_TIMEOUT_SEC(INITIAL_PUMP_TIME)
   {
-    /* if (abs(_start_weight - reservoir.weight()) < FILL_WEIGHT_DROP_MINIMUM)
+    if (abs(_start_weight - reservoir.weight()) < FILL_WEIGHT_DROP_MINIMUM)
       goto_error(BREW_ERROR_FILL);
-    else */
-    NEXT(state_purge);
+    else
+      NEXT(state_purge);
   }
 }
 

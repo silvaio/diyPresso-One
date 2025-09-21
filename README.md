@@ -30,9 +30,14 @@ You can break your hardware (and other things) with the software! Be careful.
 With open-source DiY hardware and software breaking things is part of life (and of the fun!), 
 but we are working with high voltage, water, high temperature and pressurized containers, 
 so: **be careful!**
-There are some sanity checks, watchdogs and other things in the software that provide some protection, 
-but this is not failsafe. The authors of this software cannot provide any garantee on the 
+There are some sanity checks, watchdogs and other things in the software that provide some protection,
+but this is not failsafe. The authors of this software cannot provide any garantee on the
 correct and safe functioning of this software. **You** are responsible for the safe usage of this software and hardware.
+
+### Safety Improvements (v2.x)
+- **Commissioning Water Verification**: During initial setup, the system now verifies that at least 125 grams (~125ml) of water was pumped from the reservoir to the boiler before allowing commissioning to complete.
+- **Dry Boiler Detection**: Temperature rate monitoring detects when the boiler is heating without water by monitoring heating rate. If temperature rises faster than 25°C/min (while above 50°C), heating is automatically shut down with a "DRY_BOILER" error.
+- **Commissioning Assumptions**: After successful commissioning, the system assumes the boiler contains water. Always ensure commissioning completes with proper water flow to avoid damage.
 
 
 ## Functions

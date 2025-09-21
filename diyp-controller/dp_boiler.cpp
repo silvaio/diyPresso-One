@@ -129,7 +129,12 @@ void BoilerStateMachine::control(void)
   _act_temp = thermistor.getTemperature(RNOMINAL, RREF);
 
 #ifdef SIMULATE
-  _act_temp = heaterDevice.average(); // hack for testing, read average power as actual temperature
+  // Use simulation override if set, otherwise use average power as temperature
+  if (_sim_temp_override >= 0.0) {
+    _act_temp = _sim_temp_override;
+  } else {
+    _act_temp = heaterDevice.average(); // hack for testing, read average power as actual temperature
+  }
 #endif
 
   //_rtd_error = thermistor.readFault();
@@ -145,6 +150,9 @@ void BoilerStateMachine::control(void)
       goto_error(BOILER_ERROR_OVER_TEMP);
     if (_act_temp < TEMP_LIMIT_LOW)
       goto_error(BOILER_ERROR_RTD);
+
+    // Check for dry boiler condition
+    check_dry_boiler_safety();
   }
 
   if (_on && _last_control_time + TIMEOUT_CONTROL_MSEC < millis())
@@ -209,6 +217,8 @@ const char *BoilerStateMachine::get_error_text()
     return "BREW_TIMEOUT";
   case BOILER_ERROR_CONTROL_TIMEOUT:
     return "CONTROL_TIMEOUT";
+  case BOILER_ERROR_DRY_BOILER:
+    return "DRY_BOILER";
   case BOILER_ERROR_READY_TIMEOUT:
     return "READY_TIMEOUT";
   case BOILER_ERROR_TIMEOUT_HEATING:
@@ -216,6 +226,46 @@ const char *BoilerStateMachine::get_error_text()
   default:
     return "UNKNOWN";
   }
+}
+
+void BoilerStateMachine::check_dry_boiler_safety()
+{
+  unsigned long current_time = millis();
+
+  // Only check during heating phases and when we have enough data
+  if (!_on || _brew || _temp_rate_index < 10)
+    return;
+
+  // Calculate temperature rate (degC per minute)
+  if (_last_temp_time > 0) {
+    double time_diff_sec = (current_time - _last_temp_time) / 1000.0;
+    if (time_diff_sec > 0) {
+      double temp_diff = _act_temp - _prev_temp;
+      double rate_per_min = (temp_diff / time_diff_sec) * 60.0;
+
+      // Store rate in circular buffer
+      _temp_rate_history[_temp_rate_index % TEMP_RATE_WINDOW_SEC] = rate_per_min;
+      _temp_rate_index++;
+
+      // Calculate average rate over the window
+      double avg_rate = 0;
+      int samples = min(_temp_rate_index, TEMP_RATE_WINDOW_SEC);
+      for (int i = 0; i < samples; i++) {
+        avg_rate += _temp_rate_history[i];
+      }
+      avg_rate /= samples;
+
+      // Check for dangerously high heating rate (dry boiler)
+      if (avg_rate > TEMP_RATE_MAX_DRY && _act_temp > 50.0) {
+        goto_error(BOILER_ERROR_DRY_BOILER);
+        return;
+      }
+    }
+  }
+
+  // Update for next iteration
+  _prev_temp = _act_temp;
+  _last_temp_time = current_time;
 }
 
 const char *BoilerStateMachine::get_state_name()

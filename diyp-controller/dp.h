@@ -11,7 +11,7 @@
 
 #define AUTOSLEEP_TIMEOUT (60 * 60.0)   // [sec] When longer than this time in idle, goto sleep
 #define INITIAL_PUMP_TIME (30.0)        // time to pump at startup [sec]
-#define FILL_WEIGHT_DROP_MINIMUM (10.0) // Mimimum Weight drop after filling boiler [grams]
+#define FILL_WEIGHT_DROP_MINIMUM (125.0) // Minimum Weight drop after filling boiler [grams] - ~125ml water
 #define PURGE_TIMEOUT (30.0)
 #define PURGE_WEIGHT_DROP_MINIMUM (50.0) // Minimum weight drop after purging [gram]
 
