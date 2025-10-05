@@ -110,7 +110,10 @@ void BoilerStateMachine::init()
   _rtd_error = 0;
   _on = true;
   _last_control_time = millis();
+  
+  // Initialize watchdog after everything else is ready
 #ifdef WATCHDOG_ENABLED
+  delay(100); // Small delay to ensure system is stable
   wdt_init(WDT_CONFIG_PER_16K);
 #endif
 }

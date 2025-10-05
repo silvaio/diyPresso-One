@@ -7,7 +7,7 @@
 #include <Arduino.h>
 
 // #define SIMULATE // Define this to compile as SIMULATED device (no hardware)
-#define WATCHDOG_ENABLED // if not defined: Watchdog is disabled! ENABLE FOR PRODUCTION!!!!
+// #define WATCHDOG_ENABLED // if not defined: Watchdog is disabled! ENABLE FOR PRODUCTION!!!!
 
 #define AUTOSLEEP_TIMEOUT (60 * 60.0)   // [sec] When longer than this time in idle, goto sleep
 #define INITIAL_PUMP_TIME (30.0)        // time to pump at startup [sec]
