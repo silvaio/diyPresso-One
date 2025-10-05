@@ -122,15 +122,17 @@ void BrewProcess::state_done()
 void BrewProcess::state_sleep()
 {
   statusLed.color(ColorLed::BLACK);
-
   pumpDevice.off();
   
-  // Maintain minimum temperature during sleep if enabled
-  if (settings.sleepMinTemp() > 0.0) {
-    boilerController.on();
-    boilerController.set_temp(settings.sleepMinTemp());
-  } else {
-    boilerController.off();
+  ON_ENTRY()
+  {
+    // Maintain minimum temperature during sleep if enabled
+    if (settings.sleepMinTemp() > 0.0) {
+      boilerController.on();
+      boilerController.set_temp(settings.sleepMinTemp());
+    } else {
+      boilerController.off();
+    }
   }
   
   ON_MESSAGE(WAKEUP)
