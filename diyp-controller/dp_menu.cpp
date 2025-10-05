@@ -113,12 +113,6 @@ const char *menus[] = {
     " LONG PRESS BUTTON  "
     "   TO WAKE ME...    ",
 
-    // SLEEP_TEMP=12
-    // 01234567890123456789
-    "     ##########     "
-    "####################"
-    " LONG PRESS BUTTON  "
-    "   TO WAKE ME...    ",
 
     // CONFIRM=6
     // 01234567890123456789
