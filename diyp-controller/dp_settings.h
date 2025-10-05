@@ -31,6 +31,7 @@ class DpSettings
             int commissioningDone;
             int shotCounter;
             int wifiMode;
+            double sleepMinTemp; // minimum temperature during sleep (0 = disabled)
         } settings_t;
         settings_t settings;
         void read(settings_t *s);
@@ -79,6 +80,8 @@ class DpSettings
         int commissioningDone(int state) { return settings.commissioningDone = min(1, max(state, 0)); }
         int incShotCounter() { return settings.shotCounter += 1; }
         void zeroShotCounter() { settings.shotCounter = 0; }
+        double sleepMinTemp() { return settings.sleepMinTemp; }
+        double sleepMinTemp(double temp) { return settings.sleepMinTemp = min(100.0, max(temp, 0.0)); }
 };
 
 extern DpSettings settings;

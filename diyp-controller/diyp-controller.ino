@@ -214,14 +214,13 @@ void loop()
   #ifdef LOOP_COUNT_TEST
     static unsigned long loopCounter = 0;
     static unsigned long lastTime = millis();
-    unsigned long now = millis();
 
     loopCounter++;
-    if (now - lastTime > 1000)
+    if (timeout_elapsed(lastTime, 1000))
     {
-      dpSerial.send("Loop counter: " + String(loopCounter) + " time elapsed: " + String(now - lastTime) + "ms");
+      dpSerial.send("Loop counter: " + String(loopCounter) + " time elapsed: " + String(elapsed_time(lastTime)) + "ms");
       loopCounter = 0;
-      lastTime = now;
+      lastTime = millis();
     }
   #endif
   
@@ -248,19 +247,25 @@ void loop()
   timer += 1;
 
   // Test scenarios for safety features
-  // Press encoder button 3 times quickly to enter test mode
+  // Press encoder button 2 times quickly to enter test mode (easier than 3)
   {
     int current_button_count = encoder.button_count();
     if ((current_button_count != last_button_count_test) && !test_mode) {
       static int press_count = 0;
       static unsigned long last_press = 0;
-      if (millis() - last_press < 2000) {
+      if (!timeout_elapsed(last_press, 2000)) {
         press_count++;
-        if (press_count >= 3) {
+        if (press_count >= 2) {
           test_mode = true;
           test_start = millis();
           Serial.println("\n=== ENTERING SAFETY TEST MODE ===");
           Serial.println("Testing water verification and dry boiler detection");
+          
+          #ifdef TEST_MILLIS_OVERFLOW
+          Serial.println("Running millis() overflow tests...");
+          test_millis_overflow();
+          #endif
+          
           press_count = 0;
         }
       } else {
@@ -272,7 +277,7 @@ void loop()
   }
 
   if (test_mode) {
-    unsigned long test_time = millis() - test_start;
+    unsigned long test_time = elapsed_time(test_start);
 
     // Test 1: Normal operation (first 30 seconds)
     if (test_time < 30000) {

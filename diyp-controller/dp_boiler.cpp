@@ -8,6 +8,7 @@
 #include "dp_boiler.h"
 #include "dp_heater.h"
 #include "dp_settings.h"
+#include "dp_time.h"  // Include timing functions
 
 //#include <Adafruit_MAX31865.h>
 
@@ -155,7 +156,7 @@ void BoilerStateMachine::control(void)
     check_dry_boiler_safety();
   }
 
-  if (_on && _last_control_time + TIMEOUT_CONTROL_MSEC < millis())
+  if (_on && timeout_elapsed(_last_control_time, TIMEOUT_CONTROL_MSEC))
     goto_error(BOILER_ERROR_CONTROL_TIMEOUT);
   _last_control_time = millis();
 

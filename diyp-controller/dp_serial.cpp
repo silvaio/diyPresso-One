@@ -87,6 +87,14 @@ void DpSerial::receive() {
     } else if (receivedData.startsWith("PUT settings "))
     {
         put_settings(receivedData.substring(String("SET settings ").length()));
+    } else if (receivedData.startsWith("TEST overflow")) {
+        #ifdef TEST_MILLIS_OVERFLOW
+        send("Running millis() overflow tests...");
+        test_millis_overflow();
+        send("Overflow tests completed!");
+        #else
+        send("Overflow testing not enabled. Compile with TEST_MILLIS_OVERFLOW flag.");
+        #endif
     }
     
 

@@ -63,7 +63,7 @@ bool DpSettings::crc_is_valid(settings_t *s)
 /// @brief set all values to default in settings stuct
 void DpSettings::defaults()
 {
-    settings.version = 1;  // Update this if new fields are added to the settings structure to prevent incorrect reads
+    settings.version = 2;  // Update this if new fields are added to the settings structure to prevent incorrect reads
     settings.temperature = 98.0;
     settings.preInfusionTime = 3;
     settings.infusionTime = 1;
@@ -79,6 +79,7 @@ void DpSettings::defaults()
     settings.wifiMode = 0; // off=0
     settings.shotCounter = 0;
     settings.commissioningDone = 0; // default is 0 (not done)
+    settings.sleepMinTemp = 0.0; // default is 0 (disabled)
     update_crc();
 }
 
@@ -200,7 +201,8 @@ String DpSettings::serialize() {
     result += "trimWeight=" + String(settings.trimWeight) + "\n";
     result += "commissioningDone=" + String(settings.commissioningDone) + "\n";
     result += "shotCounter=" + String(settings.shotCounter) + "\n";
-    result += "wifiMode=" + String(settings.wifiMode) + "\n";    
+    result += "wifiMode=" + String(settings.wifiMode) + "\n";
+    result += "sleepMinTemp=" + String(settings.sleepMinTemp) + "\n";    
     return result;
 }
 
@@ -276,6 +278,8 @@ int DpSettings::deserialize(String serialized_settings) {
              shotCounter(value.toInt());
         } else if (key == "wifiMode") {
             wifiMode(value.toInt());
+        } else if (key == "sleepMinTemp") {
+            sleepMinTemp(value.toDouble());
         } else {
             Serial.println("Unknown key: " + key);
             error = -2; //unknown key

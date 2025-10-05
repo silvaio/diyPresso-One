@@ -39,11 +39,17 @@ correct and safe functioning of this software. **You** are responsible for the s
 - **Dry Boiler Detection**: Temperature rate monitoring detects when the boiler is heating without water by monitoring heating rate. If temperature rises faster than 25°C/min (while above 50°C), heating is automatically shut down with a "DRY_BOILER" error.
 - **Commissioning Assumptions**: After successful commissioning, the system assumes the boiler contains water. Always ensure commissioning completes with proper water flow to avoid damage.
 
+### New Features (v1.8.0)
+- **Sleep Minimum Temperature**: Optional setting to maintain boiler temperature during sleep mode (0°C = disabled, 1-100°C = minimum temperature)
+- **Energy Management**: Users can choose between maximum energy savings (sleep temp = 0°C) or faster wake-up times (higher sleep temperatures)
+- **Visual Sleep Indicator**: Sleep display shows current minimum temperature when temperature maintenance is active (e.g., "Zzz 65°C")
+
 
 ## Functions
 * Commissioning (initial filling of boiler)
 * Settings (with EEPROM retention)
 * Basic brewing
+* Sleep mode with optional minimum temperature maintenance
 * Wifi setup
 * MQTT communication
 
@@ -61,6 +67,31 @@ correct and safe functioning of this software. **You** are responsible for the s
 * Enter the number of your network and the `[SUBMIT]` button.
 
 ![diyPresso Wifi config](images/wifi.png)
+
+
+## Sleep Mode
+
+The diyPresso One supports an energy-saving sleep mode that can be activated manually or automatically after a period of inactivity. When in sleep mode, the machine can optionally maintain a minimum boiler temperature to reduce wake-up time.
+
+### Sleep Mode Features
+- **Manual Sleep**: Press and hold the rotary encoder button to enter sleep mode
+- **Auto Sleep**: Automatically enters sleep mode after 30 minutes of inactivity (configurable)
+- **Wake Up**: Press and hold the rotary encoder button again to wake up from sleep mode
+- **Minimum Temperature**: Optional setting to maintain boiler temperature during sleep (0°C = disabled)
+- **Visual Indicator**: When maintaining temperature, the sleep display shows "Zzz 65°C" instead of just "Zzz"
+
+### Sleep Minimum Temperature Setting
+- **Default**: Disabled (0°C)
+- **Range**: 0-100°C (whole degrees only)
+- **Purpose**: Keeps boiler warm during sleep to reduce heating time when waking up
+- **Energy Trade-off**: Uses more energy but provides faster brewing readiness
+- **Setting Location**: Available in the settings menu as "Sleep min temp"
+
+### Usage Recommendations
+- Set to 0°C (disabled) for maximum energy savings
+- Set to 65-75°C for moderate energy use with reasonable wake-up time
+- Set to 80-90°C for fastest wake-up but higher energy consumption
+- Consider your usage patterns when choosing a temperature
 
 
 ## Development

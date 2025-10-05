@@ -1,4 +1,5 @@
 #include "dp_pid.h"
+#include "dp_time.h"  // Include timing functions
 
 /// @brief Initialise the DpPID controller
 /// @param input pointer to the input variable
@@ -48,7 +49,7 @@ void DpPID::reset()
 void DpPID::compute()
 {
     unsigned long now = millis();
-    curSampleTimeMs = now - lastTime;
+    curSampleTimeMs = time_since(lastTime);
     if (curSampleTimeMs >= minSamplePeriodMs) // check if enough time has passed, minSamplePeriodMs can't be < 1ms
     {
         curError = *setpoint - *input; // temp diff between setpoint and actual

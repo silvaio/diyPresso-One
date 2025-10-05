@@ -12,6 +12,7 @@
 #include "dp_heater.h"
 #include "dp_pump.h"
 #include "dp_settings.h"
+#include "dp_time.h"  // Include timing functions
 
 double settings_vals[32];
 
@@ -45,6 +46,7 @@ const setting_t settings_list[] =
         {"WIFI Mode", "OFF\0ON\0CONFIG-AP\0", &settings_vals[12], SELECT_ITEM, 1},
         {"Weight trim", "%", &settings_vals[13], 0.05, 2},
         {"Commissioning done", "NO\0YES\0", &settings_vals[14], SELECT_ITEM, 1},
+        {"Sleep min temp", "\337C", &settings_vals[15], 1.0, 0},
         {"   <Tare Weight>", "FULL", &settings_vals[31], EXECUTE_FUNCTION, FUNCTION_TARE},
         {"   <Zero Counter>", "", &settings_vals[31], EXECUTE_FUNCTION, FUNCTION_ZERO},
         {"<Reset to defaults>", "", &settings_vals[31], EXECUTE_FUNCTION, FUNCTION_DEFAULTS},
@@ -184,9 +186,8 @@ bool menu_main()
   char pump_spinner[2], heater_spinner[2], level_spinner[2];
 
   static unsigned long last_count_increment_t = 0;
-  unsigned long delta_t = millis() - last_count_increment_t;
 
-  if (delta_t > ANIMATION_REFRESH_RATE_MS) //increment animation_counter for animations every X msec
+  if (timeout_elapsed(last_count_increment_t, ANIMATION_REFRESH_RATE_MS)) //increment animation_counter for animations every X msec
   {
     last_count_increment_t = millis();
     animation_counter++;
@@ -401,6 +402,8 @@ double add_value(int n, double delta)
     return settings.trimWeight(settings.trimWeight() + delta);
   case 14:
     return settings.commissioningDone(settings.commissioningDone() + (delta / 2.0));
+  case 15:
+    return settings.sleepMinTemp(settings.sleepMinTemp() + delta);
 
   default:
     return 0;
@@ -468,15 +471,30 @@ bool menu_sleep()
   static unsigned int animation_counter = 0;
   static unsigned long last_count_increment_t = 0;
 
-  unsigned long delta_t = millis() - last_count_increment_t;
-  if (delta_t > SLEEP_SPINNER_REFRESH_RATE_MS) //increment animation_counter for animations every X msec
+  if (timeout_elapsed(last_count_increment_t, SLEEP_SPINNER_REFRESH_RATE_MS)) //increment animation_counter for animations every X msec
   {
     last_count_increment_t = millis();
     animation_counter += 1;
   }
   if (animation_counter >= sizeof(sleep_spinner) / sizeof(const char *))
     animation_counter = 0;
-  display.show(menus[MENU_SLEEP], &sleep_spinner[animation_counter]);
+  
+  // Check if minimum temperature is being maintained
+  if (settings.sleepMinTemp() > 0.0) {
+    // Show temperature indicator when maintaining minimum temp
+    char temp_indicator[21];
+    char temp_str[6];
+    format_float(temp_str, settings.sleepMinTemp(), 0, 5);
+    snprintf(temp_indicator, sizeof(temp_indicator), "     %s %s\337C     ", sleep_spinner[animation_counter], temp_str);
+    
+    // Convert to char* array for display.show()
+    char *args[1];
+    args[0] = temp_indicator;
+    display.show(menus[MENU_SLEEP], args);
+  } else {
+    // Normal sleep display when no temperature maintenance
+    display.show(menus[MENU_SLEEP], &sleep_spinner[animation_counter]);
+  }
   return false;
 }
 

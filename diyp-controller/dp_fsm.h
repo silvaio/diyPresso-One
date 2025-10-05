@@ -38,6 +38,8 @@
 #ifndef _DP_FSM_H
 #define _DP_FSM_H
 
+#include "dp_time.h"  // Include timing functions for template
+
 
 template<typename T>
 class StateMachine
@@ -52,7 +54,7 @@ class StateMachine
         void next(state_function_ptr state) { _next_state = state; };
         bool on_entry() { return _cur_state != _prev_state; }
         bool on_exit() { return _cur_state != _next_state; }
-        bool on_timeout( unsigned long duration ) { return (_state_time+duration) < millis(); }
+        bool on_timeout( unsigned long duration ) { return time_since(_state_time) >= duration; }
         bool on_message(int msg) { if ( msg == _message) { _message = 0; return true; } return false; }
         bool no_message() { return _message == 0; }
         bool is_prev_state(state_function_ptr state) { return _prev_state == state; }
@@ -82,7 +84,7 @@ class StateMachine
             }
             return !no_message();
         }
-        double state_time() { unsigned long t = millis()-_state_time; if (t > 0) return t/1000.0; else return (0xFFFFFFFF-t)/1000.0; }
+        double state_time() { return time_since(_state_time) / 1000.0; }
 
         virtual const char *get_state_name() { return "<undefined>"; }
 };
