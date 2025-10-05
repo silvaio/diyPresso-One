@@ -158,7 +158,14 @@ const char *menus[] = {
     "       Warning!     "
     "     Almost empty   "
     " Push to start brew "
-    "Weight ##### gram # " // [0:Weight] [1:level]
+    "Weight ##### gram # ", // [0:Weight] [1:level]
+
+    // SLEEP_TEMP=12
+    // 01234567890123456789
+    "     ##########     "
+    "####################"
+    " LONG PRESS BUTTON  "
+    "   TO WAKE ME...    "
 
 };
 const int num_menus = sizeof(menus) / sizeof(char *);
