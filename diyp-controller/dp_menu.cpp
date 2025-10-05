@@ -493,7 +493,7 @@ bool menu_sleep()
     char temp_line[21];
     char temp_str[6];
     format_float(temp_str, settings.sleepMinTemp(), 0, 5);
-    snprintf(temp_line, sizeof(temp_line), "   Maintaining %sC   ", temp_str);
+    snprintf(temp_line, sizeof(temp_line), "  Maintaining %sC  ", temp_str);
     
     // Show animated sleep on line 1, temperature on line 2
     char *args[2];
