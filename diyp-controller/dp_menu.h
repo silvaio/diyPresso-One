@@ -33,7 +33,8 @@ typedef enum
   MENU_SAVED = 8,
   MENU_STATE = 9,
   MENU_COMMISSIONING = 10,
-  MENU_WARNING_ALMOST_EMPTY = 11
+  MENU_WARNING_ALMOST_EMPTY = 11,
+  MENU_SLEEP_TEMP = 12
 } menu_list_t;
 
 typedef struct setting

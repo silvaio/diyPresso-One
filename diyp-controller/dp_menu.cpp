@@ -113,6 +113,13 @@ const char *menus[] = {
     " LONG PRESS BUTTON  "
     "   TO WAKE ME...    ",
 
+    // SLEEP_TEMP=12
+    // 01234567890123456789
+    "     ##########     "
+    "####################"
+    " LONG PRESS BUTTON  "
+    "   TO WAKE ME...    ",
+
     // CONFIRM=6
     // 01234567890123456789
     "####################"
@@ -481,16 +488,17 @@ bool menu_sleep()
   
   // Check if minimum temperature is being maintained
   if (settings.sleepMinTemp() > 0.0) {
-    // Show temperature indicator when maintaining minimum temp
-    char temp_indicator[21];
+    // Show temperature indicator on separate line - doesn't interfere with animation
+    char temp_line[21];
     char temp_str[6];
     format_float(temp_str, settings.sleepMinTemp(), 0, 5);
-    snprintf(temp_indicator, sizeof(temp_indicator), "     %s %s\337C     ", sleep_spinner[animation_counter], temp_str);
+    snprintf(temp_line, sizeof(temp_line), "   Maintaining %s\337C   ", temp_str);
     
-    // Convert to char* array for display.show()
-    char *args[1];
-    args[0] = temp_indicator;
-    display.show(menus[MENU_SLEEP], args);
+    // Show animated sleep on line 1, temperature on line 2
+    char *args[2];
+    args[0] = (char*)sleep_spinner[animation_counter];
+    args[1] = temp_line;
+    display.show(menus[MENU_SLEEP_TEMP], args);
   } else {
     // Normal sleep display when no temperature maintenance
     display.show(menus[MENU_SLEEP], &sleep_spinner[animation_counter]);
