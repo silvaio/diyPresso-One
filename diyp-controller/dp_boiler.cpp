@@ -9,6 +9,8 @@
 #include "dp_heater.h"
 #include "dp_settings.h"
 #include "dp_time.h"  // Include timing functions
+#include "dp_reservoir.h"  // For reservoir extern
+#include "dp_pump.h"      // For pumpDevice extern
 
 //#include <Adafruit_MAX31865.h>
 
@@ -57,6 +59,13 @@ void BoilerStateMachine::state_ready()
     NEXT(state_brew);
   if (abs(_set_temp - _act_temp) > TEMP_WINDOW)
     NEXT(state_heating);
+  if (_force_state_recheck)
+  {
+    _force_state_recheck = false;
+    // Force re-evaluation of temperature difference
+    if (abs(_set_temp - _act_temp) > TEMP_WINDOW)
+      NEXT(state_heating);
+  }
   ON_TIMEOUT_SEC(TIMEOUT_READY)
   goto_error(BOILER_ERROR_READY_TIMEOUT);
 }
@@ -165,6 +174,9 @@ void BoilerStateMachine::control(void)
 
   run();
 
+  // Process boiler level checking
+  process_boiler_level_check();
+
   _pid.compute();
 
   // char buffer[10];
@@ -261,6 +273,8 @@ void BoilerStateMachine::check_dry_boiler_safety()
 
       // Check for dangerously high heating rate (dry boiler)
       if (avg_rate > TEMP_RATE_MAX_DRY && _act_temp > 50.0) {
+        // Trigger emergency boiler check before error
+        request_boiler_check(BOILER_CHECK_EMERGENCY);
         goto_error(BOILER_ERROR_DRY_BOILER);
         return;
       }
@@ -281,4 +295,114 @@ const char *BoilerStateMachine::get_state_name()
   RETURN_STATE_NAME(error);
   RETURN_NONE_STATE_NAME()
   RETURN_UNKNOWN_STATE_NAME();
+}
+
+// Boiler level checking implementation
+void BoilerStateMachine::request_boiler_check(boiler_check_reason_t reason)
+{
+  if (!_boiler_check_in_progress && !_brew) {
+    _pending_boiler_check = reason;
+    start_boiler_level_check();
+  }
+}
+
+void BoilerStateMachine::start_boiler_level_check()
+{
+  _boiler_check_in_progress = true;
+  _boiler_check_start_weight = reservoir.weight();
+  _boiler_check_start_time = millis();
+  pumpDevice.on();
+  
+  Serial.print("Boiler check started: ");
+  Serial.println(get_check_reason_text(_pending_boiler_check));
+}
+
+void BoilerStateMachine::process_boiler_level_check()
+{
+  if (!_boiler_check_in_progress) return;
+  
+  unsigned long elapsed = millis() - _boiler_check_start_time;
+  
+  // Safety timeout - stop filling after maximum time
+  if (elapsed >= BOILER_FILL_MAX_TIME_SEC * 1000) {
+    pumpDevice.off();
+    Serial.print("Boiler fill timeout after ");
+    Serial.print(BOILER_FILL_MAX_TIME_SEC);
+    Serial.println(" seconds - stopping");
+    handle_boiler_check_result(false);
+    _boiler_check_in_progress = false;
+    _pending_boiler_check = BOILER_CHECK_NONE;
+    return;
+  }
+  
+  if (elapsed >= BOILER_FILL_TEST_TIME_SEC * 1000) {
+    // Check completed
+    double weight_change = _boiler_check_start_weight - reservoir.weight();
+    pumpDevice.off();
+    
+    bool boiler_was_full = (weight_change < BOILER_FILL_THRESHOLD_G);
+    
+    Serial.print("Boiler check completed: ");
+    Serial.print(get_check_reason_text(_pending_boiler_check));
+    Serial.print(" - ");
+    Serial.println(boiler_was_full ? "FULL" : "REFILLED");
+    
+    if (boiler_was_full) {
+      // Boiler is full - we're done
+      handle_boiler_check_result(true);
+      _boiler_check_in_progress = false;
+      _pending_boiler_check = BOILER_CHECK_NONE;
+    } else {
+      // Boiler wasn't full - continue filling
+      Serial.println("Boiler not full yet - continuing to fill...");
+      _boiler_check_start_weight = reservoir.weight();  // Reset baseline
+      _boiler_check_start_time = millis();               // Reset timer
+      pumpDevice.on();                                   // Keep pumping
+    }
+  }
+}
+
+void BoilerStateMachine::handle_boiler_check_result(bool was_full)
+{
+  switch (_pending_boiler_check) {
+    case BOILER_CHECK_STARTUP:
+      if (!was_full) {
+        Serial.println("Startup: Boiler was empty - refilled");
+      }
+      break;
+      
+    case BOILER_CHECK_PRESLEEP:
+      if (!was_full) {
+        Serial.println("Pre-sleep: Boiler was empty - refilled");
+      }
+      // Now safe to proceed with sleep
+      break;
+      
+    case BOILER_CHECK_POSTBREW:
+      if (!was_full) {
+        Serial.println("Post-brew: Boiler was empty - refilled");
+      }
+      break;
+      
+    case BOILER_CHECK_EMERGENCY:
+      if (!was_full) {
+        Serial.println("Emergency: Boiler was empty - refilled");
+      }
+      break;
+      
+    default:
+      break;
+  }
+}
+
+const char* BoilerStateMachine::get_check_reason_text(boiler_check_reason_t reason)
+{
+  switch (reason) {
+    case BOILER_CHECK_NONE: return "NONE";
+    case BOILER_CHECK_STARTUP: return "STARTUP";
+    case BOILER_CHECK_PRESLEEP: return "PRESLEEP";
+    case BOILER_CHECK_POSTBREW: return "POSTBREW";
+    case BOILER_CHECK_EMERGENCY: return "EMERGENCY";
+    default: return "UNKNOWN";
+  }
 }

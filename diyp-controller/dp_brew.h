@@ -51,6 +51,7 @@ public:
   bool is_purge() { return IN_STATE(purge); }
   bool is_busy() { return IN_STATE(pre_infuse) || IN_STATE(infuse) || IN_STATE(extract); }
   bool is_warning_almost_empty() { return IN_STATE(warning_pre_brew); }
+  bool is_shutdown() { return IN_STATE(shutdown); }
   double brew_time() { return _brewTimer.read() / 1000.0; }
   double weight() { return _start_weight - reservoir.weight(); }
   double end_weight() { return _end_weight; }
@@ -66,6 +67,7 @@ protected:
   double _start_weight = 0.0, _end_weight = 0.0;
   Timer _brewTimer = Timer();
   void state_sleep();
+  void state_shutdown();
   void state_init();
   void state_fill();
   void state_purge();

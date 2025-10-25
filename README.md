@@ -39,7 +39,18 @@ correct and safe functioning of this software. **You** are responsible for the s
 - **Dry Boiler Detection**: Temperature rate monitoring detects when the boiler is heating without water by monitoring heating rate. If temperature rises faster than 25°C/min (while above 50°C), heating is automatically shut down with a "DRY_BOILER" error.
 - **Commissioning Assumptions**: After successful commissioning, the system assumes the boiler contains water. Always ensure commissioning completes with proper water flow to avoid damage.
 
-### New Features (v1.8.0)
+### Safety Improvements (v1.9.0-dev)
+- **Automatic Boiler Level Checking**: The system now automatically checks and refills the boiler at critical times:
+  - **Before sleep**: Ensures boiler is full before entering sleep mode
+  - **After startup**: Verifies boiler level after power-on
+  - **After brewing**: Replenishes water lost during brewing
+  - **Emergency refill**: Automatic refill when dry boiler is detected
+- **Smart Refill Detection**: Uses pump + weight scale to detect if boiler is full (no weight change = full)
+- **Non-intrusive Operation**: Boiler checks happen at natural transition points, not during normal operation
+- **Automatic Shutdown**: System automatically shuts down after 4 hours in sleep mode for safety and energy conservation
+- **Easy Wake-up**: Press the dial button to wake up from shutdown (no need for RESET button)
+
+### New Features (v1.8.0) 
 - **Sleep Minimum Temperature**: Optional setting to maintain boiler temperature during sleep mode (0°C = disabled, 1-100°C = minimum temperature)
 - **Energy Management**: Users can choose between maximum energy savings (sleep temp = 0°C) or faster wake-up times (higher sleep temperatures)
 - **Visual Sleep Indicator**: Sleep display shows current minimum temperature when temperature maintenance is active (e.g., "Zzz 65°C")

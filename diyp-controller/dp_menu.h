@@ -14,6 +14,7 @@ extern bool menu_brew(); // not used?
 extern bool menu_main();
 extern bool menu_warning_almost_empty();
 extern bool menu_sleep();
+extern bool menu_shutdown();
 extern bool menu_wifi(char *msg);
 extern bool menu_saved();
 extern bool menu_error(const char *msg);

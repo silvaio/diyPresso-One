@@ -37,6 +37,15 @@
 #define TEMP_RATE_MAX_NORMAL (5.0)           // Max normal temperature rise rate [degC/min]
 #define TEMP_RATE_MAX_DRY (25.0)             // Max safe temperature rise rate [degC/min] - tuned for 1300W element
 
+// Boiler level check reasons
+typedef enum {
+  BOILER_CHECK_NONE,
+  BOILER_CHECK_STARTUP,
+  BOILER_CHECK_PRESLEEP,
+  BOILER_CHECK_POSTBREW,
+  BOILER_CHECK_EMERGENCY
+} boiler_check_reason_t;
+
 // Various boiler errors
 typedef enum
 {
@@ -60,7 +69,14 @@ public:
   int error() { return _error; }
   void clear_error() { _error = BOILER_ERROR_NONE; }
   double set_temp() { return _set_temp; }
-  double set_temp(double temp) { return _set_temp = min(TEMP_LIMIT_HIGH, max(temp, 0.0)); }
+  double set_temp(double temp) { 
+    double new_temp = min(TEMP_LIMIT_HIGH, max(temp, 0.0));
+    // If temperature change is significant and we're in ready state, force recheck
+    if (abs(new_temp - _set_temp) > TEMP_WINDOW && _cur_state == &BoilerStateMachine::state_ready) {
+      _force_state_recheck = true;
+    }
+    return _set_temp = new_temp; 
+  }
   double act_temp() { return _act_temp; }
   double act_power() { return _power; }
   double set_ff_heat(double ff) { return _ff_heat = min(100.0, max(ff, 0.0)); }
@@ -78,6 +94,7 @@ public:
   }
   void start_brew() { _brew = true; }
   void stop_brew() { _brew = false; }
+  void force_state_recheck() { _force_state_recheck = true; }
   bool is_on() { return _on; }
   bool is_ready() { return _cur_state == &BoilerStateMachine::state_ready; }
   bool is_error() { return _cur_state == &BoilerStateMachine::state_error; }
@@ -86,6 +103,12 @@ public:
   void control();
   void begin();
   void init(); 
+  
+  // Boiler level checking
+  void request_boiler_check(boiler_check_reason_t reason);
+  bool is_boiler_check_pending() { return _boiler_check_in_progress; }
+  void process_boiler_level_check();
+  
 #ifdef SIMULATE
   // Public helpers for simulation
   void set_sim_temp_override(double temp) { _sim_temp_override = temp; }
@@ -108,6 +131,16 @@ private:
 
   // Simulation override for testing
   double _sim_temp_override = -1.0;
+  
+  // Boiler level checking
+  boiler_check_reason_t _pending_boiler_check = BOILER_CHECK_NONE;
+  bool _boiler_check_in_progress = false;
+  double _boiler_check_start_weight = 0;
+  unsigned long _boiler_check_start_time = 0;
+  
+  // State recheck flag
+  bool _force_state_recheck = false;
+  
   void state_off();     // SSR is forced OFF
   void state_heating(); // Temperature control, but not yet on target temperature
   void state_ready();   // temperature control, within range of target temperature
@@ -115,6 +148,9 @@ private:
   void state_error();   // heater is forced OFF, error code is set, set state to OFF to clear error
   void goto_error(boiler_error_t err);
   void check_dry_boiler_safety();
+  void start_boiler_level_check();
+  void handle_boiler_check_result(bool was_full);
+  const char* get_check_reason_text(boiler_check_reason_t reason);
   MAX31865 thermistor = MAX31865(PIN_THERM_CS);
 };
 

@@ -507,6 +507,42 @@ bool menu_sleep()
   return false;
 }
 
+bool menu_shutdown()
+{
+  static char *shutdown_spinner[] = 
+      {
+          "POWER OFF      ",
+          "POWER OFF.     ",
+          "POWER OFF..    ",
+          "POWER OFF...   ",
+          "POWER OFF....  ",
+          "POWER OFF..... ",
+          "POWER OFF......",
+          "POWER OFF..... ",
+          "POWER OFF....  ",
+          "POWER OFF...   ",
+          "POWER OFF..    ",
+          "POWER OFF.     ",
+      };
+  static unsigned int animation_counter = 0;
+  static unsigned long last_count_increment_t = 0;
+
+  if (timeout_elapsed(last_count_increment_t, SLEEP_SPINNER_REFRESH_RATE_MS)) //increment animation_counter for animations every X msec
+  {
+    last_count_increment_t = millis();
+    animation_counter += 1;
+  }
+  if (animation_counter >= sizeof(shutdown_spinner) / sizeof(const char *))
+    animation_counter = 0;
+  
+  // Show shutdown animation on line 1, instruction on line 2
+  char *args[2];
+  args[0] = (char*)shutdown_spinner[animation_counter];
+  args[1] = (char*)"Press button to wake";
+  display.show(menus[MENU_SLEEP_TEMP], args); // Reuse sleep temp menu format
+  return false;
+}
+
 bool menu_error(const char *msg)
 {
 

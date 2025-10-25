@@ -195,6 +195,7 @@ typedef enum
   MAIN,
   SETTINGS,
   SLEEP,
+  SHUTDOWN,
   SAVED,
   ERROR,
   INFO,
@@ -342,6 +343,8 @@ void loop()
 
   if (brewProcess.is_error())
     menu = ERROR; // error menu
+  else if (brewProcess.is_shutdown())
+    menu = SHUTDOWN; // shutdown menu
 
   switch (menu)
   {
@@ -403,6 +406,15 @@ void loop()
     {
       menu = MAIN;
       display.button_pressed(); // consume button pressed event, prevent jump to settings menu
+      display.encoder_changed();
+    }
+    break;
+  case SHUTDOWN: // shutdown menu
+    menu_shutdown();
+    if (!brewProcess.is_shutdown())
+    {
+      menu = MAIN;
+      display.button_pressed(); // consume button pressed event
       display.encoder_changed();
     }
     break;

@@ -126,6 +126,14 @@ void BrewProcess::state_sleep()
   
   ON_ENTRY()
   {
+    // Check boiler level before sleeping
+    boilerController.request_boiler_check(BOILER_CHECK_PRESLEEP);
+    
+    // Wait for boiler check to complete before proceeding
+    if (boilerController.is_boiler_check_pending()) {
+      return;  // Stay in entry until check done
+    }
+    
     // Maintain minimum temperature during sleep if enabled
     if (settings.sleepMinTemp() > 0.0) {
       boilerController.on();
@@ -135,8 +143,35 @@ void BrewProcess::state_sleep()
     }
   }
   
+  // Check for shutdown timeout (4 hours in sleep)
+  if (_brewTimer.read() > SHUTDOWN_TIMEOUT * 1000) {
+    NEXT(state_shutdown);
+  }
+  
   ON_MESSAGE(WAKEUP)
   NEXT(state_idle);
+}
+
+void BrewProcess::state_shutdown()
+{
+  statusLed.color(ColorLed::RED);
+  
+  ON_ENTRY()
+  {
+    // Turn off all systems
+    boilerController.off();
+    pumpDevice.off();
+    
+    Serial.println("SYSTEM SHUTDOWN: 4 hours sleep timeout reached");
+    Serial.println("Press button to wake up");
+  }
+  
+  // Button press wakes up from shutdown
+  ON_MESSAGE(MSG_BUTTON)
+  {
+    Serial.println("WAKE UP: Button pressed - restarting system");
+    NEXT(state_idle);
+  }
 }
 
 void BrewProcess::state_empty()
@@ -155,6 +190,11 @@ void BrewProcess::state_idle()
 {
   ON_ENTRY()
   {
+    // Check boiler level after startup (coming from init state)
+    if (is_prev_state(STATE(state_init))) {
+      boilerController.request_boiler_check(BOILER_CHECK_STARTUP);
+    }
+    
     if (!is_prev_state(STATE(state_finished)))
       _end_weight = weight();
     _brewTimer.stop();
@@ -248,6 +288,9 @@ void BrewProcess::state_finished()
 {
   ON_ENTRY()
   {
+    // Check boiler level after brewing
+    boilerController.request_boiler_check(BOILER_CHECK_POSTBREW);
+    
     _end_weight = weight();
     statusLed.color(ColorLed::CYAN);
     pumpDevice.off();
@@ -292,6 +335,7 @@ const char *BrewProcess::get_state_name()
   RETURN_STATE_NAME(fill);
   RETURN_STATE_NAME(purge);
   RETURN_STATE_NAME(sleep);
+  RETURN_STATE_NAME(shutdown);
   RETURN_STATE_NAME(empty);
   RETURN_STATE_NAME(idle);
   RETURN_STATE_NAME(check);
